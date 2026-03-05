@@ -1,3 +1,4 @@
+import './globals.css' 
 export const metadata = {
   title: "SmartHire",
   description: "AI Powered Job Portal",

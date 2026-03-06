@@ -1,5 +1,5 @@
 'use client'
-
+import { signIn } from 'next-auth/react'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Sparkles, ArrowRight } from 'lucide-react'
@@ -70,7 +70,7 @@ export default function LoginPage() {
             career match.
           </h1>
 
-          <p className="mt-6 text-sm text-zinc-500 leading-relaxed max-w-xs">
+          <p className="mt-6 text-base text-zinc-500 leading-relaxed max-w-xs">
             AI-powered recommendations tailored to your unique skills, experience, and ambitions.
           </p>
 
@@ -212,6 +212,7 @@ export default function LoginPage() {
           <button
             type="button"
             className="w-full flex items-center justify-center gap-2.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-sm py-3 rounded-lg transition-colors"
+            onClick={()=>signIn("google",{ callbackUrl: "/dashboard" })}
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>

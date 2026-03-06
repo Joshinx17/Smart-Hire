@@ -192,18 +192,12 @@ export default function LandingPage() {
           <div className="flex flex-wrap justify-center gap-2 mt-10">
             {['Resume Analysis', 'Smart Matching', 'AI Recruiter', 'One-Click Apply', 'Bias-Free Hiring'].map((f) => (
               <span key={f}
-                className="px-3 py-1.5 rounded-full border border-zinc-800 text-zinc-500 text-xs tracking-wide">
+                className="px-3 py-1.5 rounded-full border border-zinc-800 text-zinc-500 text-base tracking-wide">
                 {f}
               </span>
             ))}
           </div>
         </div>
-
-        {/* Scroll hint */}
-        <a href="#features" className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-zinc-600 hover:text-zinc-400 transition-colors">
-          <span className="text-[10px] uppercase tracking-widest">Explore</span>
-          <ChevronDown size={16} className="animate-bounce" />
-        </a>
       </section>
 
       {/* ── STATS BAND ── */}
@@ -212,7 +206,7 @@ export default function LandingPage() {
           {STATS.map(({ num, label }) => (
             <div key={label} className="text-center">
               <div className="text-3xl font-light text-amber-400 mb-1">{num}</div>
-              <div className="text-xs uppercase tracking-widest text-zinc-600">{label}</div>
+              <div className="text-base uppercase tracking-widest text-zinc-600">{label}</div>
             </div>
           ))}
         </div>
@@ -394,7 +388,7 @@ export default function LandingPage() {
             ))}
           </div>
 
-          <p className="text-xs text-white">© 2025 SmartHire AI. All rights reserved.</p>
+          <p className="text-xs text-white">© 2026 SmartHire AI. All rights reserved.</p>
         </div>
       </footer>
 

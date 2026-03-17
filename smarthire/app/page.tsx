@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   Sparkles, ArrowRight, Brain, Search, FileText,
-  TrendingUp, Users, Building2, ChevronDown,
+  TrendingUp, Users, Building2,
   Zap, Shield, BarChart3, CheckCircle, Menu, X
 } from 'lucide-react'
 
@@ -86,7 +86,7 @@ export default function LandingPage() {
       {/* ── NAVBAR ── */}
       <header
         className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
-          scrolled ? 'bg-zinc-950/90 backdrop-blur border-b border-zinc-800/60' : ''
+          scrolled  ? 'border-b border-zinc-800/60'  : 'border-b border-transparent'
         }`}
       >
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">

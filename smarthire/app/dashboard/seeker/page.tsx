@@ -17,12 +17,19 @@ type Job = {
   recruiter: { name: string }
 }
 
-const TYPE_COLORS: Record<string, string> = {
-  "full-time": "#22c55e",
-  "part-time": "#f59e0b",
-  contract: "#6366f1",
-  remote: "#06b6d4",
+const TYPE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  "full-time":  { bg: "#052e16", text: "#4ade80", border: "#166534" },
+  "part-time":  { bg: "#1c1400", text: "#fbbf24", border: "#78350f" },
+  contract:     { bg: "#0d0b2e", text: "#a5b4fc", border: "#3730a3" },
+  remote:       { bg: "#0a1e26", text: "#22d3ee", border: "#164e63" },
 }
+
+const NAV_ITEMS = [
+  { icon: "⊞", label: "Browse Jobs",   active: true  },
+  { icon: "♡", label: "Saved Jobs",    active: false },
+  { icon: "◎", label: "Applications",  active: false },
+  { icon: "⊙", label: "Profile",       active: false },
+]
 
 export default function SeekerDashboard() {
   const { data: session, status } = useSession()
@@ -34,19 +41,14 @@ export default function SeekerDashboard() {
   const [typeFilter, setTypeFilter] = useState("all")
   const [selected, setSelected] = useState<Job | null>(null)
 
-  // Fetch jobs once authenticated
   useEffect(() => {
     if (status !== "authenticated") return
     fetch("/api/jobs")
       .then((r) => r.json())
-      .then((data) => {
-        setJobs(data)
-        setFiltered(data)
-      })
+      .then((data) => { setJobs(data); setFiltered(data) })
       .finally(() => setLoading(false))
   }, [status])
 
-  // Filter logic
   useEffect(() => {
     let result = jobs
     if (search.trim()) {
@@ -59,562 +61,609 @@ export default function SeekerDashboard() {
           j.skills.some((s) => s.toLowerCase().includes(q))
       )
     }
-    if (typeFilter !== "all") {
-      result = result.filter((j) => j.type === typeFilter)
-    }
+    if (typeFilter !== "all") result = result.filter((j) => j.type === typeFilter)
     setFiltered(result)
   }, [search, typeFilter, jobs])
 
   if (status === "loading" || loading) {
     return (
-      <div style={styles.loadingWrap}>
-        <div style={styles.spinner} />
-        <p style={{ color: "#94a3b8", marginTop: 16, fontFamily: "monospace" }}>
-          fetching opportunities...
-        </p>
+      <div className="loading-wrap">
+        <div className="spinner" />
+        <p className="loading-text">fetching opportunities…</p>
+        <style>{globalStyles}</style>
       </div>
     )
   }
 
+  const initials = session?.user?.name?.[0]?.toUpperCase() ?? "U"
+
   return (
-    <div style={styles.root}>
-      {/* ── Sidebar ── */}
-      <aside style={styles.sidebar}>
-        <div style={styles.logo}>⌖ JobBoard</div>
+    <>
+      <style>{globalStyles}</style>
+      <div className="root">
 
-        <nav style={styles.nav}>
-          <NavItem icon="◈" label="Browse Jobs" active />
-          <NavItem icon="◉" label="Saved Jobs" />
-          <NavItem icon="◎" label="Applications" />
-          <NavItem icon="◌" label="Profile" />
-        </nav>
+        {/* ── Sidebar ── */}
+        <aside className="sidebar">
+          <div className="logo">
+            <span className="logo-icon">⌖</span>
+            <span className="logo-text">SmartHire</span>
+          </div>
 
-        <div style={styles.sidebarBottom}>
-          <div style={styles.userChip}>
-            <div style={styles.avatar}>
-              {session?.user?.name?.[0]?.toUpperCase() ?? "U"}
+          <nav className="nav">
+            {NAV_ITEMS.map((item) => (
+              <div key={item.label} className={`nav-item${item.active ? " nav-item-active" : ""}`}>
+                <span className="nav-icon">{item.icon}</span>
+                <span className="nav-label">{item.label}</span>
+                {item.active && <span className="nav-dot" />}
+              </div>
+            ))}
+          </nav>
+
+          <div className="sidebar-bottom">
+            <div className="user-chip">
+              <div className="avatar">{initials}</div>
+              <div className="user-info">
+                <div className="user-name">{session?.user?.name}</div>
+                <div className="user-role">Job Seeker</div>
+              </div>
             </div>
+            <button className="sign-out-btn" onClick={() => signOut({ callbackUrl: "/login" })}>
+              ← Sign out
+            </button>
+          </div>
+        </aside>
+
+        {/* ── Main ── */}
+        <main className="main">
+
+          {/* Header */}
+          <div className="header">
             <div>
-              <div style={styles.userName}>{session?.user?.name}</div>
-              <div style={styles.userRole}>Job Seeker</div>
+              <h1 className="page-title">Browse Jobs</h1>
+              <p className="page-subtitle">
+                <span className="count-badge">{filtered.length}</span>
+                {" "}open position{filtered.length !== 1 ? "s" : ""} available
+              </p>
+            </div>
+            <div className="header-right">
+              <div className="greeting">
+                Good {getTimeOfDay()},{" "}
+                <strong>{session?.user?.name?.split(" ")[0]}</strong> 👋
+              </div>
             </div>
           </div>
-          <button
-            style={styles.signOutBtn}
-            onClick={() => signOut({ callbackUrl: "/login" })}
-          >
-            Sign out
-          </button>
-        </div>
-      </aside>
 
-      {/* ── Main ── */}
-      <main style={styles.main}>
-        {/* Header */}
-        <div style={styles.header}>
-          <div>
-            <h1 style={styles.pageTitle}>Browse Jobs</h1>
-            <p style={styles.pageSubtitle}>
-              {filtered.length} open position{filtered.length !== 1 ? "s" : ""}{" "}
-              available
-            </p>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div style={styles.filterRow}>
-          <input
-            style={styles.searchInput}
-            placeholder="Search title, company, skills..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <div style={styles.typeFilters}>
-            {["all", "full-time", "part-time", "contract", "remote"].map(
-              (t) => (
+          {/* Filters */}
+          <div className="filter-row">
+            <div className="search-wrap">
+              <span className="search-icon">⊙</span>
+              <input
+                className="search-input"
+                placeholder="Search title, company, location, skills…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              {search && (
+                <button className="clear-btn" onClick={() => setSearch("")}>✕</button>
+              )}
+            </div>
+            <div className="type-filters">
+              {["all", "full-time", "part-time", "contract", "remote"].map((t) => (
                 <button
                   key={t}
-                  style={{
-                    ...styles.filterChip,
-                    ...(typeFilter === t ? styles.filterChipActive : {}),
-                  }}
+                  className={`filter-chip${typeFilter === t ? " filter-chip-active" : ""}`}
                   onClick={() => setTypeFilter(t)}
                 >
                   {t}
                 </button>
-              )
-            )}
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Job Grid */}
-        {filtered.length === 0 ? (
-          <div style={styles.empty}>
-            <div style={{ fontSize: 48 }}>◌</div>
-            <p>No jobs match your search.</p>
-          </div>
-        ) : (
-          <div style={styles.grid}>
-            {filtered.map((job) => (
-              <div
-                key={job.id}
-                style={styles.card}
-                onClick={() => setSelected(job)}
-                onMouseEnter={(e) => {
-                  ;(e.currentTarget as HTMLDivElement).style.transform =
-                    "translateY(-4px)"
-                  ;(e.currentTarget as HTMLDivElement).style.borderColor =
-                    "#6366f1"
-                }}
-                onMouseLeave={(e) => {
-                  ;(e.currentTarget as HTMLDivElement).style.transform =
-                    "translateY(0)"
-                  ;(e.currentTarget as HTMLDivElement).style.borderColor =
-                    "#1e293b"
-                }}
-              >
-                <div style={styles.cardTop}>
-                  <div style={styles.companyBadge}>
-                    {job.company[0].toUpperCase()}
-                  </div>
-                  <span
-                    style={{
-                      ...styles.typeBadge,
-                      background: TYPE_COLORS[job.type] + "22",
-                      color: TYPE_COLORS[job.type],
-                      border: `1px solid ${TYPE_COLORS[job.type]}44`,
-                    }}
-                  >
-                    {job.type}
-                  </span>
-                </div>
+          {/* Job Grid */}
+          {filtered.length === 0 ? (
+            <div className="empty">
+              <div className="empty-icon">◌</div>
+              <p className="empty-text">No jobs match your search.</p>
+              <button className="empty-reset" onClick={() => { setSearch(""); setTypeFilter("all") }}>
+                Clear filters
+              </button>
+            </div>
+          ) : (
+            <div className="grid">
+              {filtered.map((job, i) => (
+                <JobCard key={job.id} job={job} index={i} onClick={() => setSelected(job)} />
+              ))}
+            </div>
+          )}
+        </main>
 
-                <h3 style={styles.jobTitle}>{job.title}</h3>
-                <p style={styles.company}>{job.company}</p>
-                <p style={styles.location}>⌖ {job.location}</p>
+        {/* ── Job Detail Drawer ── */}
+        {selected && (
+          <div className="overlay" onClick={() => setSelected(null)}>
+            <div className="drawer" onClick={(e) => e.stopPropagation()}>
+              <button className="close-btn" onClick={() => setSelected(null)}>✕</button>
 
-                {job.salary && <p style={styles.salary}>💰 {job.salary}</p>}
-
-                <p style={styles.desc}>
-                  {job.description.slice(0, 120)}
-                  {job.description.length > 120 ? "…" : ""}
-                </p>
-
-                <div style={styles.skills}>
-                  {job.skills.slice(0, 4).map((s) => (
-                    <span key={s} style={styles.skill}>
-                      {s}
-                    </span>
-                  ))}
-                  {job.skills.length > 4 && (
-                    <span style={styles.skill}>+{job.skills.length - 4}</span>
-                  )}
-                </div>
-
-                <div style={styles.cardFooter}>
-                  <span style={styles.postedBy}>by {job.recruiter.name}</span>
-                  <span style={styles.date}>
-                    {new Date(job.createdAt).toLocaleDateString("en-IN", {
-                      day: "numeric",
-                      month: "short",
-                    })}
-                  </span>
+              {/* Drawer header */}
+              <div className="drawer-header">
+                <div className="drawer-logo">{selected.company[0].toUpperCase()}</div>
+                <div>
+                  <h2 className="drawer-title">{selected.title}</h2>
+                  <p className="drawer-company">{selected.company}</p>
                 </div>
               </div>
-            ))}
+
+              {/* Meta row */}
+              <div className="drawer-meta">
+                <span className="meta-pill">⌖ {selected.location}</span>
+                <span
+                  className="meta-pill"
+                  style={{
+                    background: TYPE_COLORS[selected.type]?.bg,
+                    color: TYPE_COLORS[selected.type]?.text,
+                    border: `1px solid ${TYPE_COLORS[selected.type]?.border}`,
+                  }}
+                >
+                  ● {selected.type}
+                </span>
+                {selected.salary && (
+                  <span className="meta-pill salary-pill">{selected.salary} LPA</span>
+                )}
+              </div>
+
+              <div className="divider" />
+
+              <h4 className="section-label">About the Role</h4>
+              <p className="drawer-desc">{selected.description}</p>
+
+              {selected.skills.length > 0 && (
+                <>
+                  <h4 className="section-label">Skills Required</h4>
+                  <div className="skills">
+                    {selected.skills.map((s) => (
+                      <span key={s} className="skill">{s}</span>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              <p className="posted-by-detail">
+                Posted by{" "}
+                <strong style={{ color: "#e2e8f0" }}>{selected.recruiter.name}</strong>
+                {" "}·{" "}
+                {new Date(selected.createdAt).toLocaleDateString("en-IN", {
+                  day: "numeric", month: "long", year: "numeric",
+                })}
+              </p>
+
+              <div className="drawer-actions">
+                <button className="save-btn">♡ Save</button>
+                <button className="apply-btn">Apply Now →</button>
+              </div>
+            </div>
           </div>
         )}
-      </main>
-
-      {/* ── Job Detail Drawer ── */}
-      {selected && (
-        <div style={styles.overlay} onClick={() => setSelected(null)}>
-          <div style={styles.drawer} onClick={(e) => e.stopPropagation()}>
-            <button style={styles.closeBtn} onClick={() => setSelected(null)}>
-              ✕
-            </button>
-
-            <div style={styles.drawerHeader}>
-              <div style={styles.drawerLogo}>
-                {selected.company[0].toUpperCase()}
-              </div>
-              <div>
-                <h2 style={styles.drawerTitle}>{selected.title}</h2>
-                <p style={styles.drawerCompany}>{selected.company}</p>
-              </div>
-            </div>
-
-            <div style={styles.drawerMeta}>
-              <span>⌖ {selected.location}</span>
-              <span style={{ color: TYPE_COLORS[selected.type] }}>
-                ● {selected.type}
-              </span>
-              {selected.salary && <span>💰 {selected.salary}</span>}
-            </div>
-
-            <h4 style={styles.sectionLabel}>Description</h4>
-            <p style={styles.drawerDesc}>{selected.description}</p>
-
-            {selected.skills.length > 0 && (
-              <>
-                <h4 style={styles.sectionLabel}>Skills Required</h4>
-                <div style={styles.skills}>
-                  {selected.skills.map((s) => (
-                    <span key={s} style={styles.skill}>
-                      {s}
-                    </span>
-                  ))}
-                </div>
-              </>
-            )}
-
-            <p style={styles.postedByDetail}>
-              Posted by{" "}
-              <strong style={{ color: "#e2e8f0" }}>
-                {selected.recruiter.name}
-              </strong>{" "}
-              on{" "}
-              {new Date(selected.createdAt).toLocaleDateString("en-IN", {
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              })}
-            </p>
-
-            <button style={styles.applyBtn}>Apply Now →</button>
-          </div>
-        </div>
-      )}
-    </div>
+      </div>
+    </>
   )
 }
 
-function NavItem({
-  icon,
-  label,
-  active,
-}: {
-  icon: string
-  label: string
-  active?: boolean
-}) {
+function JobCard({ job, index, onClick }: { job: Job; index: number; onClick: () => void }) {
+  const colors = TYPE_COLORS[job.type] ?? { bg: "#1e293b", text: "#94a3b8", border: "#334155" }
   return (
     <div
-      style={{
-        ...styles.navItem,
-        ...(active ? styles.navItemActive : {}),
-      }}
+      className="card"
+      onClick={onClick}
+      style={{ animationDelay: `${index * 40}ms` }}
     >
-      <span style={{ fontSize: 16 }}>{icon}</span>
-      <span>{label}</span>
+      <div className="card-top">
+        <div className="company-badge">{job.company[0].toUpperCase()}</div>
+        <span
+          className="type-badge"
+          style={{ background: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}
+        >
+          {job.type}
+        </span>
+      </div>
+
+      <h3 className="job-title">{job.title}</h3>
+      <p className="company-name">{job.company}</p>
+      <p className="location">⌖ {job.location}</p>
+      {job.salary && <p className="salary"> {job.salary} LPA</p>}
+
+      <p className="desc">{job.description.slice(0, 110)}{job.description.length > 110 ? "…" : ""}</p>
+
+      <div className="skills">
+        {job.skills.slice(0, 4).map((s) => (
+          <span key={s} className="skill">{s}</span>
+        ))}
+        {job.skills.length > 4 && (
+          <span className="skill">+{job.skills.length - 4}</span>
+        )}
+      </div>
+
+      <div className="card-footer">
+        <span className="posted-by">by {job.recruiter.name}</span>
+        <span className="card-date">
+          {new Date(job.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+        </span>
+      </div>
     </div>
   )
 }
 
-const styles: Record<string, React.CSSProperties> = {
-  root: {
-    display: "flex",
-    minHeight: "100vh",
-    background: "#020817",
-    fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
-    color: "#e2e8f0",
-  },
-  loadingWrap: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: "100vh",
-    background: "#020817",
-    color: "#e2e8f0",
-  },
-  spinner: {
-    width: 40,
-    height: 40,
-    border: "3px solid #1e293b",
-    borderTop: "3px solid #6366f1",
-    borderRadius: "50%",
-    animation: "spin 0.8s linear infinite",
-  },
-  sidebar: {
-    width: 240,
-    background: "#0f172a",
-    borderRight: "1px solid #1e293b",
-    display: "flex",
-    flexDirection: "column",
-    padding: "28px 0",
-    position: "sticky",
-    top: 0,
-    height: "100vh",
-  },
-  logo: {
-    fontSize: 20,
-    fontWeight: 700,
-    letterSpacing: "-0.5px",
-    color: "#6366f1",
-    padding: "0 24px 32px",
-  },
-  nav: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    gap: 2,
-    padding: "0 12px",
-  },
-  navItem: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    padding: "10px 14px",
-    borderRadius: 8,
-    cursor: "pointer",
-    color: "#64748b",
-    fontSize: 14,
-    fontWeight: 500,
-    transition: "all 0.15s",
-  },
-  navItemActive: {
-    background: "#6366f115",
-    color: "#818cf8",
-  },
-  sidebarBottom: {
-    padding: "16px 16px 0",
-    borderTop: "1px solid #1e293b",
-    display: "flex",
-    flexDirection: "column",
-    gap: 12,
-  },
-  userChip: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    padding: "8px 0",
-  },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: "50%",
-    background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: 700,
-    fontSize: 14,
-    color: "#fff",
-    flexShrink: 0,
-  },
-  userName: { fontSize: 13, fontWeight: 600, color: "#cbd5e1" },
-  userRole: { fontSize: 11, color: "#475569", marginTop: 1 },
-  signOutBtn: {
-    background: "transparent",
-    border: "1px solid #1e293b",
-    color: "#64748b",
-    borderRadius: 7,
-    padding: "8px 12px",
-    fontSize: 12,
-    cursor: "pointer",
-    width: "100%",
-    transition: "all 0.15s",
-  },
-  main: { flex: 1, padding: "36px 40px", overflowY: "auto" },
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 28,
-  },
-  pageTitle: {
-    fontSize: 28,
-    fontWeight: 700,
-    letterSpacing: "-0.5px",
-    margin: 0,
-    color: "#f1f5f9",
-  },
-  pageSubtitle: { fontSize: 13, color: "#64748b", marginTop: 4 },
-  filterRow: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 12,
-    marginBottom: 28,
-  },
-  searchInput: {
-    background: "#0f172a",
-    border: "1px solid #1e293b",
-    borderRadius: 10,
-    padding: "12px 16px",
-    color: "#e2e8f0",
-    fontSize: 14,
-    outline: "none",
-    width: "100%",
-    boxSizing: "border-box",
-  },
-  typeFilters: { display: "flex", gap: 8, flexWrap: "wrap" },
-  filterChip: {
-    background: "transparent",
-    border: "1px solid #1e293b",
-    color: "#64748b",
-    borderRadius: 999,
-    padding: "6px 14px",
-    fontSize: 12,
-    cursor: "pointer",
-    fontFamily: "inherit",
-    textTransform: "capitalize",
-    transition: "all 0.15s",
-  },
-  filterChipActive: {
-    background: "#6366f1",
-    border: "1px solid #6366f1",
-    color: "#fff",
-  },
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-    gap: 20,
-  },
-  card: {
-    background: "#0f172a",
-    border: "1px solid #1e293b",
-    borderRadius: 14,
-    padding: "22px",
-    cursor: "pointer",
-    transition: "transform 0.2s, border-color 0.2s",
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-  },
-  cardTop: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  companyBadge: {
-    width: 38,
-    height: 38,
-    borderRadius: 9,
-    background: "linear-gradient(135deg, #1e293b, #334155)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: 800,
-    fontSize: 15,
-    color: "#94a3b8",
-  },
-  typeBadge: {
-    borderRadius: 999,
-    padding: "4px 10px",
-    fontSize: 11,
-    fontWeight: 600,
-    textTransform: "capitalize",
-  },
-  jobTitle: { fontSize: 16, fontWeight: 700, margin: 0, color: "#f1f5f9" },
-  company: { fontSize: 13, color: "#818cf8", margin: 0, fontWeight: 500 },
-  location: { fontSize: 12, color: "#64748b", margin: 0 },
-  salary: { fontSize: 12, color: "#22c55e", margin: 0, fontWeight: 500 },
-  desc: { fontSize: 13, color: "#94a3b8", lineHeight: 1.6, margin: 0, flex: 1 },
-  skills: { display: "flex", flexWrap: "wrap", gap: 6 },
-  skill: {
-    background: "#1e293b",
-    color: "#94a3b8",
-    borderRadius: 6,
-    padding: "3px 10px",
-    fontSize: 11,
-    fontWeight: 500,
-  },
-  cardFooter: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 4,
-    paddingTop: 12,
-    borderTop: "1px solid #1e293b",
-  },
-  postedBy: { fontSize: 11, color: "#475569" },
-  date: { fontSize: 11, color: "#475569" },
-  empty: {
-    textAlign: "center",
-    color: "#475569",
-    padding: "80px 0",
-    fontSize: 16,
-  },
-  overlay: {
-    position: "fixed",
-    inset: 0,
-    background: "#00000088",
-    backdropFilter: "blur(4px)",
-    zIndex: 50,
-    display: "flex",
-    justifyContent: "flex-end",
-  },
-  drawer: {
-    width: 440,
-    background: "#0f172a",
-    borderLeft: "1px solid #1e293b",
-    height: "100%",
-    overflowY: "auto",
-    padding: "36px 32px",
-    position: "relative",
-    display: "flex",
-    flexDirection: "column",
-    gap: 16,
-  },
-  closeBtn: {
-    position: "absolute",
-    top: 20,
-    right: 20,
-    background: "#1e293b",
-    border: "none",
-    color: "#94a3b8",
-    width: 32,
-    height: 32,
-    borderRadius: "50%",
-    cursor: "pointer",
-    fontSize: 13,
-  },
-  drawerHeader: { display: "flex", alignItems: "center", gap: 16 },
-  drawerLogo: {
-    width: 52,
-    height: 52,
-    borderRadius: 12,
-    background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: 800,
-    fontSize: 20,
-    color: "#fff",
-    flexShrink: 0,
-  },
-  drawerTitle: { fontSize: 20, fontWeight: 700, margin: 0, color: "#f1f5f9" },
-  drawerCompany: { fontSize: 14, color: "#818cf8", margin: "4px 0 0" },
-  drawerMeta: {
-    display: "flex",
-    gap: 20,
-    fontSize: 13,
-    color: "#64748b",
-    flexWrap: "wrap",
-  },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: 700,
-    letterSpacing: 1,
-    textTransform: "uppercase",
-    color: "#475569",
-    margin: 0,
-  },
-  drawerDesc: { fontSize: 14, color: "#94a3b8", lineHeight: 1.8, margin: 0 },
-  postedByDetail: { fontSize: 12, color: "#475569", marginTop: 8 },
-  applyBtn: {
-    marginTop: "auto",
-    background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-    color: "#fff",
-    border: "none",
-    borderRadius: 10,
-    padding: "14px 24px",
-    fontSize: 15,
-    fontWeight: 600,
-    cursor: "pointer",
-    width: "100%",
-    letterSpacing: "-0.3px",
-  },
+function getTimeOfDay() {
+  const h = new Date().getHours()
+  if (h < 12) return "morning"
+  if (h < 17) return "afternoon"
+  return "evening"
 }
+
+const globalStyles = `
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #06070d;
+    --surface:  #0d1117;
+    --surface2: #161b24;
+    --border:   #1e2738;
+    --border2:  #252f40;
+    --text-1:   #f0f4ff;
+    --text-2:   #8896b3;
+    --text-3:   #4a566e;
+    --accent:   #f59e0b;
+    --accent2:  #fbbf24;
+    --purple:   #818cf8;
+    --radius:   14px;
+    --font-display: 'DM Sans', sans-serif;
+    --font-body:    'DM Sans', sans-serif;
+  }
+
+  body { background: var(--bg); }
+
+  .loading-wrap {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; min-height: 100vh;
+    background: var(--bg); gap: 16px;
+  }
+  .spinner {
+    width: 44px; height: 44px;
+    border: 3px solid var(--border2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.75s linear infinite;
+  }
+  .loading-text { font-family: var(--font-body); color: var(--text-3); font-size: 15px; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to   { transform: translateX(0);    opacity: 1; }
+  }
+
+  .root {
+    display: flex; min-height: 100vh;
+    background: var(--bg);
+    font-family: var(--font-body);
+    color: var(--text-1);
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 248px; flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    padding: 28px 0;
+    position: sticky; top: 0; height: 100vh;
+    overflow: hidden;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 24px 36px;
+  }
+  .logo-icon { font-size: 22px; color: var(--accent); }
+  .logo-text {
+    font-family: var(--font-display);
+    font-size: 18px; font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--text-1);
+  }
+  .nav { flex: 1; display: flex; flex-direction: column; gap: 2px; padding: 0 12px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 14px; border-radius: 10px;
+    cursor: pointer; color: var(--text-3);
+    font-size: 15px; font-weight: 500;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .nav-item:hover { color: var(--text-2); background: var(--surface2); }
+  .nav-item-active { background: #1a1400; color: var(--accent); }
+  .nav-item-active:hover { background: #1a1400; color: var(--accent); }
+  .nav-icon { font-size: 17px; }
+  .nav-label { font-size: 15px; }
+  .nav-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+    margin-left: auto;
+  }
+  .sidebar-bottom {
+    padding: 16px 16px 0;
+    border-top: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .user-chip { display: flex; align-items: center; gap: 12px; padding: 6px 0; }
+  .avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: linear-gradient(135deg, #92400e, var(--accent));
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 15px; color: #fff;
+    flex-shrink: 0; font-family: var(--font-display);
+  }
+  .user-info { display: flex; flex-direction: column; gap: 2px; }
+  .user-name { font-size: 14px; font-weight: 600; color: var(--text-1); }
+  .user-role { font-size: 12px; color: var(--text-3); }
+  .sign-out-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-3); border-radius: 8px;
+    padding: 9px 14px; font-size: 13px;
+    cursor: pointer; width: 100%;
+    font-family: var(--font-body);
+    transition: all 0.15s; text-align: left;
+  }
+  .sign-out-btn:hover { border-color: var(--border2); color: var(--text-2); }
+
+  /* ── Main ── */
+  .main { flex: 1; padding: 28px 36px; overflow-y: auto; max-width: 1200px; }
+
+  .header {
+    display: flex; justify-content: space-between;
+    align-items: flex-start; margin-bottom: 24px;
+  }
+  .page-title {
+    font-family: var(--font-display);
+    font-size: 24px; font-weight: 800;
+    letter-spacing: -0.5px; color: var(--text-1);
+    line-height: 1.1;
+  }
+  .page-subtitle {
+    font-size: 13px; color: var(--text-3); margin-top: 5px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .count-badge {
+    background: #1a1400; color: var(--accent);
+    border: 1px solid #78350f;
+    border-radius: 6px; padding: 1px 7px;
+    font-size: 12px; font-weight: 700;
+    font-family: var(--font-display);
+  }
+  .header-right { text-align: right; }
+  .greeting {
+    font-size: 13px; color: var(--text-3);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 14px;
+  }
+  .greeting strong { color: var(--text-1); font-weight: 600; }
+
+  /* Filters */
+  .filter-row { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+  .search-wrap {
+    position: relative; display: flex; align-items: center;
+  }
+  .search-icon {
+    position: absolute; left: 14px;
+    color: var(--text-3); font-size: 14px; pointer-events: none;
+  }
+  .search-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 11px 14px 11px 40px;
+    color: var(--text-1);
+    font-size: 13px;
+    font-family: var(--font-body);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-input::placeholder { color: var(--text-3); }
+  .search-input:focus { border-color: var(--accent); }
+  .clear-btn {
+    position: absolute; right: 12px;
+    background: var(--border); border: none;
+    color: var(--text-2); width: 20px; height: 20px;
+    border-radius: 50%; cursor: pointer; font-size: 10px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .type-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+  .filter-chip {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-3);
+    border-radius: 999px; padding: 6px 14px;
+    font-size: 12px; font-weight: 500;
+    cursor: pointer; font-family: var(--font-body);
+    text-transform: capitalize; transition: all 0.15s;
+  }
+  .filter-chip:hover { border-color: var(--border2); color: var(--text-2); }
+  .filter-chip-active {
+    background: var(--accent); border-color: var(--accent);
+    color: #000; font-weight: 600;
+  }
+  .filter-chip-active:hover { background: var(--accent2); border-color: var(--accent2); color: #000; }
+
+  /* Grid */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+  }
+
+  /* Card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    cursor: pointer;
+    display: flex; flex-direction: column; gap: 8px;
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    animation: fadeUp 0.4s ease both;
+  }
+  .card:hover {
+    transform: translateY(-3px);
+    border-color: var(--accent);
+    box-shadow: 0 8px 30px #f59e0b14;
+  }
+  .card-top {
+    display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: 2px;
+  }
+  .company-badge {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display);
+    font-weight: 800; font-size: 14px; color: var(--text-2);
+  }
+  .type-badge {
+    border-radius: 999px; padding: 3px 10px;
+    font-size: 11px; font-weight: 600;
+    text-transform: capitalize; letter-spacing: 0.2px;
+  }
+  .job-title {
+    font-family: var(--font-display);
+    font-size: 15px; font-weight: 700;
+    color: var(--text-1); line-height: 1.3;
+  }
+  .company-name { font-size: 13px; color: var(--purple); font-weight: 500; }
+  .location { font-size: 12px; color: var(--text-3); }
+  .salary { font-size: 12px; color: #4ade80; font-weight: 500; }
+  .desc { font-size: 13px; color: var(--text-2); line-height: 1.6; flex: 1; }
+  .skills { display: flex; flex-wrap: wrap; gap: 5px; }
+  .skill {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text-2); border-radius: 5px;
+    padding: 3px 8px; font-size: 11px; font-weight: 500;
+  }
+  .card-footer {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 2px; padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .posted-by { font-size: 11px; color: var(--text-3); }
+  .card-date { font-size: 11px; color: var(--text-3); }
+
+  /* Empty */
+  .empty {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 80px 0; gap: 12px;
+  }
+  .empty-icon { font-size: 40px; color: var(--border2); }
+  .empty-text { font-size: 14px; color: var(--text-3); }
+  .empty-reset {
+    background: var(--surface2); border: 1px solid var(--border2);
+    color: var(--text-2); border-radius: 8px;
+    padding: 8px 16px; font-size: 13px;
+    cursor: pointer; font-family: var(--font-body);
+    transition: all 0.15s;
+  }
+  .empty-reset:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Overlay + Drawer */
+  .overlay {
+    position: fixed; inset: 0;
+    background: #00000070;
+    backdrop-filter: blur(6px);
+    z-index: 50;
+    display: flex; justify-content: flex-end;
+    animation: fadeUp 0.15s ease;
+  }
+  .drawer {
+    width: 420px; max-width: 90vw;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    height: 100%; overflow-y: auto;
+    padding: 32px 28px;
+    position: relative;
+    display: flex; flex-direction: column; gap: 14px;
+    animation: slideIn 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .close-btn {
+    position: absolute; top: 18px; right: 18px;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text-2); width: 30px; height: 30px;
+    border-radius: 50%; cursor: pointer; font-size: 12px;
+    transition: all 0.15s;
+  }
+  .close-btn:hover { background: var(--border2); color: var(--text-1); }
+  .drawer-header { display: flex; align-items: center; gap: 14px; }
+  .drawer-logo {
+    width: 46px; height: 46px; border-radius: 11px;
+    background: linear-gradient(135deg, #92400e, var(--accent));
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display);
+    font-weight: 800; font-size: 18px; color: #fff;
+    flex-shrink: 0;
+  }
+  .drawer-title {
+    font-family: var(--font-display);
+    font-size: 18px; font-weight: 800;
+    color: var(--text-1); line-height: 1.2;
+  }
+  .drawer-company { font-size: 13px; color: var(--purple); margin-top: 3px; font-weight: 500; }
+  .drawer-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+  .meta-pill {
+    background: var(--surface2); border: 1px solid var(--border2);
+    color: var(--text-2); border-radius: 999px;
+    padding: 5px 12px; font-size: 12px;
+  }
+  .salary-pill { color: #4ade80; background: #052e16; border-color: #166534; }
+  .divider { height: 1px; background: var(--border); }
+  .section-label {
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--text-3); font-family: var(--font-display);
+  }
+  .drawer-desc {
+    font-size: 14px; color: var(--text-2);
+    line-height: 1.75;
+  }
+  .posted-by-detail { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+  .drawer-actions {
+    display: flex; gap: 10px; margin-top: auto; padding-top: 8px;
+  }
+  .save-btn {
+    flex: 0 0 auto;
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text-2); border-radius: 9px;
+    padding: 11px 16px; font-size: 13px;
+    cursor: pointer; font-family: var(--font-body);
+    transition: all 0.15s;
+  }
+  .save-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .apply-btn {
+    flex: 1;
+    background: var(--accent);
+    color: #000; border: none;
+    border-radius: 9px; padding: 12px 20px;
+    font-size: 14px; font-weight: 700;
+    cursor: pointer; font-family: var(--font-display);
+    letter-spacing: -0.3px;
+    transition: all 0.15s;
+    box-shadow: 0 4px 20px #f59e0b40;
+  }
+  .apply-btn:hover { background: var(--accent2); transform: translateY(-1px); box-shadow: 0 8px 28px #f59e0b50; }
+`

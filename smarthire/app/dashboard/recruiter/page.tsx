@@ -16,6 +16,8 @@ type Job = {
     createdAt: string
 }
 
+type NavTab = "postings" | "applications" | "analytics" | "profile"
+
 const TYPE_COLORS: Record<string, string> = {
     "full-time": "#22c55e",
     "part-time": "#f59e0b",
@@ -36,6 +38,7 @@ const EMPTY_FORM = {
 export default function RecruiterDashboard() {
     const { data: session, status } = useSession()
 
+    const [activeTab, setActiveTab] = useState<NavTab>("postings")
     const [jobs, setJobs] = useState<Job[]>([])
     const [loading, setLoading] = useState(true)
     const [showModal, setShowModal] = useState(false)
@@ -81,10 +84,7 @@ export default function RecruiterDashboard() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 ...form,
-                skills: form.skills
-                    .split(",")
-                    .map((s) => s.trim())
-                    .filter(Boolean),
+                skills: form.skills.split(",").map((s) => s.trim()).filter(Boolean),
             }),
         })
         setSubmitting(false)
@@ -117,10 +117,10 @@ export default function RecruiterDashboard() {
             <aside style={styles.sidebar}>
                 <div style={styles.logo}>⌖ JobBoard</div>
                 <nav style={styles.nav}>
-                    <NavItem icon="◈" label="My Postings" active />
-                    <NavItem icon="◉" label="Applications" />
-                    <NavItem icon="◎" label="Analytics" />
-                    <NavItem icon="◌" label="Profile" />
+                    <NavItem icon="◈" label="My Postings"   tab="postings"     active={activeTab} onClick={setActiveTab} />
+                    <NavItem icon="◉" label="Applications"  tab="applications" active={activeTab} onClick={setActiveTab} />
+                    <NavItem icon="◎" label="Analytics"     tab="analytics"    active={activeTab} onClick={setActiveTab} />
+                    <NavItem icon="◌" label="Profile"        tab="profile"      active={activeTab} onClick={setActiveTab} />
                 </nav>
                 <div style={styles.sidebarBottom}>
                     <div style={styles.userChip}>
@@ -132,10 +132,7 @@ export default function RecruiterDashboard() {
                             <div style={styles.userRole}>Recruiter</div>
                         </div>
                     </div>
-                    <button
-                        style={styles.signOutBtn}
-                        onClick={() => signOut({ callbackUrl: "/login" })}
-                    >
+                    <button style={styles.signOutBtn} onClick={() => signOut({ callbackUrl: "/login" })}>
                         Sign out
                     </button>
                 </div>
@@ -143,86 +140,186 @@ export default function RecruiterDashboard() {
 
             {/* ── Main ── */}
             <main style={styles.main}>
-                <div style={styles.header}>
-                    <div>
-                        <h1 style={styles.pageTitle}>My Job Postings</h1>
-                        <p style={styles.pageSubtitle}>Manage everything you've published</p>
-                    </div>
-                    <button style={styles.newJobBtn} onClick={() => setShowModal(true)}>
-                        + Post a Job
-                    </button>
-                </div>
 
-                {/* Stats */}
-                <div style={styles.statsRow}>
-                    <StatCard label="Total Postings" value={jobs.length} color="#6366f1" />
-                    <StatCard label="Open" value={openCount} color="#22c55e" />
-                    <StatCard label="Closed" value={closedCount} color="#ef4444" />
-                </div>
+                {/* ── MY POSTINGS ── */}
+                {activeTab === "postings" && (
+                    <>
+                        <div style={styles.header}>
+                            <div>
+                                <h1 style={styles.pageTitle}>My Job Postings</h1>
+                                <p style={styles.pageSubtitle}>Manage everything you've published</p>
+                            </div>
+                            <button style={styles.newJobBtn} onClick={() => setShowModal(true)}>
+                                + Post a Job
+                            </button>
+                        </div>
 
-                {/* Table */}
-                {jobs.length === 0 ? (
-                    <div style={styles.empty}>
-                        <div style={{ fontSize: 48 }}>◌</div>
-                        <p>No jobs posted yet.</p>
-                        <button style={styles.newJobBtn} onClick={() => setShowModal(true)}>
-                            Post your first job
-                        </button>
-                    </div>
-                ) : (
-                    <div style={styles.tableWrap}>
-                        <table style={styles.table}>
-                            <thead>
-                                <tr>
-                                    {["Job Title", "Company", "Location", "Type", "Salary", "Status", "Posted", "Actions"].map(
-                                        (h) => <th key={h} style={styles.th}>{h}</th>
-                                    )}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {jobs.map((job, i) => (
-                                    <tr key={job.id} style={{ ...styles.tr, background: i % 2 === 0 ? "#0f172a" : "#0a1120" }}>
-                                        <td style={styles.td}>
-                                            <div style={styles.titleCell}>
-                                                <div style={styles.titleIcon}>{job.title[0].toUpperCase()}</div>
-                                                <span style={{ color: "#f1f5f9", fontWeight: 600 }}>{job.title}</span>
+                        <div style={styles.statsRow}>
+                            <StatCard label="Total Postings" value={jobs.length} color="#6366f1" />
+                            <StatCard label="Open" value={openCount} color="#22c55e" />
+                            <StatCard label="Closed" value={closedCount} color="#ef4444" />
+                        </div>
+
+                        {jobs.length === 0 ? (
+                            <div style={styles.empty}>
+                                <div style={{ fontSize: 48 }}>◌</div>
+                                <p>No jobs posted yet.</p>
+                                <button style={styles.newJobBtn} onClick={() => setShowModal(true)}>
+                                    Post your first job
+                                </button>
+                            </div>
+                        ) : (
+                            <div style={styles.tableWrap}>
+                                <table style={styles.table}>
+                                    <thead>
+                                        <tr>
+                                            {["Job Title", "Company", "Location", "Type", "Salary", "Status", "Posted", "Actions"].map(
+                                                (h) => <th key={h} style={styles.th}>{h}</th>
+                                            )}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {jobs.map((job, i) => (
+                                            <tr key={job.id} style={{ ...styles.tr, background: i % 2 === 0 ? "#0f172a" : "#0a1120" }}>
+                                                <td style={styles.td}>
+                                                    <div style={styles.titleCell}>
+                                                        <div style={styles.titleIcon}>{job.title[0].toUpperCase()}</div>
+                                                        <span style={{ color: "#f1f5f9", fontWeight: 600 }}>{job.title}</span>
+                                                    </div>
+                                                </td>
+                                                <td style={styles.td}>{job.company}</td>
+                                                <td style={styles.td}>{job.location}</td>
+                                                <td style={styles.td}>
+                                                    <span style={{ ...styles.typePill, background: TYPE_COLORS[job.type] + "20", color: TYPE_COLORS[job.type] }}>
+                                                        {job.type}
+                                                    </span>
+                                                </td>
+                                                <td style={styles.td}>
+                                                    {job.salary
+                                                        ? <span style={{ color: "#22c55e" }}>{job.salary}</span>
+                                                        : <span style={{ color: "#334155" }}>—</span>}
+                                                </td>
+                                                <td style={styles.td}>
+                                                    <span style={{ ...styles.statusPill, background: job.isOpen ? "#22c55e20" : "#ef444420", color: job.isOpen ? "#22c55e" : "#ef4444" }}>
+                                                        {job.isOpen ? "● Open" : "● Closed"}
+                                                    </span>
+                                                </td>
+                                                <td style={{ ...styles.td, color: "#475569", fontSize: 12 }}>
+                                                    {new Date(job.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                                                </td>
+                                                <td style={styles.td}>
+                                                    <div style={styles.actions}>
+                                                        <button style={styles.actionBtn} onClick={() => toggleJob(job.id, job.isOpen)}>
+                                                            {job.isOpen ? "Close" : "Open"}
+                                                        </button>
+                                                        <button style={{ ...styles.actionBtn, ...styles.deleteBtn }} onClick={() => deleteJob(job.id)}>
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {/* ── APPLICATIONS ── */}
+                {activeTab === "applications" && (
+                    <>
+                        <div style={styles.header}>
+                            <div>
+                                <h1 style={styles.pageTitle}>Applications</h1>
+                                <p style={styles.pageSubtitle}>Review candidates who applied to your postings</p>
+                            </div>
+                        </div>
+                        <PlaceholderCard
+                            icon="◉"
+                            title="Applications coming soon"
+                            desc="Once candidates apply to your job postings, you'll be able to review, filter, and manage them here."
+                            color="#6366f1"
+                        />
+                    </>
+                )}
+
+                {/* ── ANALYTICS ── */}
+                {activeTab === "analytics" && (
+                    <>
+                        <div style={styles.header}>
+                            <div>
+                                <h1 style={styles.pageTitle}>Analytics</h1>
+                                <p style={styles.pageSubtitle}>Performance overview of your job postings</p>
+                            </div>
+                        </div>
+
+                        {/* Quick stats from real data */}
+                        <div style={styles.statsRow}>
+                            <StatCard label="Total Postings" value={jobs.length} color="#6366f1" />
+                            <StatCard label="Open" value={openCount} color="#22c55e" />
+                            <StatCard label="Closed" value={closedCount} color="#ef4444" />
+                        </div>
+
+                        {/* Job type breakdown */}
+                        {jobs.length > 0 && (
+                            <div style={{ ...styles.tableWrap, padding: 24, marginBottom: 20 }}>
+                                <p style={{ ...styles.pageSubtitle, marginBottom: 16 }}>Postings by Type</p>
+                                {(["full-time", "part-time", "contract", "remote"] as const).map((type) => {
+                                    const count = jobs.filter((j) => j.type === type).length
+                                    const pct = jobs.length ? Math.round((count / jobs.length) * 100) : 0
+                                    return (
+                                        <div key={type} style={{ marginBottom: 14 }}>
+                                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#94a3b8", marginBottom: 6 }}>
+                                                <span style={{ textTransform: "capitalize" }}>{type}</span>
+                                                <span>{count} job{count !== 1 ? "s" : ""} ({pct}%)</span>
                                             </div>
-                                        </td>
-                                        <td style={styles.td}>{job.company}</td>
-                                        <td style={styles.td}>{job.location}</td>
-                                        <td style={styles.td}>
-                                            <span style={{ ...styles.typePill, background: TYPE_COLORS[job.type] + "20", color: TYPE_COLORS[job.type] }}>
-                                                {job.type}
-                                            </span>
-                                        </td>
-                                        <td style={styles.td}>
-                                            {job.salary
-                                                ? <span style={{ color: "#22c55e" }}>{job.salary}</span>
-                                                : <span style={{ color: "#334155" }}>—</span>}
-                                        </td>
-                                        <td style={styles.td}>
-                                            <span style={{ ...styles.statusPill, background: job.isOpen ? "#22c55e20" : "#ef444420", color: job.isOpen ? "#22c55e" : "#ef4444" }}>
-                                                {job.isOpen ? "● Open" : "● Closed"}
-                                            </span>
-                                        </td>
-                                        <td style={{ ...styles.td, color: "#475569", fontSize: 12 }}>
-                                            {new Date(job.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                                        </td>
-                                        <td style={styles.td}>
-                                            <div style={styles.actions}>
-                                                <button style={styles.actionBtn} onClick={() => toggleJob(job.id, job.isOpen)}>
-                                                    {job.isOpen ? "Close" : "Open"}
-                                                </button>
-                                                <button style={{ ...styles.actionBtn, ...styles.deleteBtn }} onClick={() => deleteJob(job.id)}>
-                                                    Delete
-                                                </button>
+                                            <div style={{ background: "#1e293b", borderRadius: 999, height: 6 }}>
+                                                <div style={{ background: TYPE_COLORS[type] ?? "#6366f1", width: `${pct}%`, height: 6, borderRadius: 999, transition: "width 0.5s ease" }} />
                                             </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
+
+                        <PlaceholderCard
+                            icon="◎"
+                            title="Detailed analytics coming soon"
+                            desc="Views, click-through rates, and applicant funnel metrics will appear here."
+                            color="#f59e0b"
+                        />
+                    </>
+                )}
+
+                {/* ── PROFILE ── */}
+                {activeTab === "profile" && (
+                    <>
+                        <div style={styles.header}>
+                            <div>
+                                <h1 style={styles.pageTitle}>Profile</h1>
+                                <p style={styles.pageSubtitle}>Your recruiter account details</p>
+                            </div>
+                        </div>
+                        <div style={{ ...styles.tableWrap, padding: 32, maxWidth: 500 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 18, marginBottom: 28 }}>
+                                <div style={{ ...styles.avatar, width: 56, height: 56, fontSize: 22 }}>
+                                    {session?.user?.name?.[0]?.toUpperCase() ?? "R"}
+                                </div>
+                                <div>
+                                    <div style={{ fontSize: 18, fontWeight: 700, color: "#f1f5f9" }}>{session?.user?.name}</div>
+                                    <div style={{ fontSize: 13, color: "#475569", marginTop: 2 }}>Recruiter</div>
+                                </div>
+                            </div>
+                            <ProfileRow label="Email" value={session?.user?.email ?? "—"} />
+                            <ProfileRow label="Role" value="Recruiter" />
+                            <ProfileRow label="Total Postings" value={String(jobs.length)} />
+                            <ProfileRow label="Open Postings" value={String(openCount)} />
+                            <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid #1e293b" }}>
+                                <p style={{ fontSize: 12, color: "#334155" }}>Profile editing coming soon.</p>
+                            </div>
+                        </div>
+                    </>
                 )}
             </main>
 
@@ -277,6 +374,25 @@ export default function RecruiterDashboard() {
     )
 }
 
+function ProfileRow({ label, value }: { label: string; value: string }) {
+    return (
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #1e293b", fontSize: 13 }}>
+            <span style={{ color: "#475569" }}>{label}</span>
+            <span style={{ color: "#e2e8f0", fontWeight: 500 }}>{value}</span>
+        </div>
+    )
+}
+
+function PlaceholderCard({ icon, title, desc, color }: { icon: string; title: string; desc: string; color: string }) {
+    return (
+        <div style={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 14, padding: "60px 40px", textAlign: "center", color: "#475569" }}>
+            <div style={{ fontSize: 40, marginBottom: 16, color }}>{icon}</div>
+            <p style={{ fontSize: 16, fontWeight: 600, color: "#64748b", marginBottom: 8 }}>{title}</p>
+            <p style={{ fontSize: 13, color: "#334155", maxWidth: 360, margin: "0 auto" }}>{desc}</p>
+        </div>
+    )
+}
+
 function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
     return (
         <div style={{ ...styles.statCard, borderTop: `3px solid ${color}` }}>
@@ -286,9 +402,15 @@ function StatCard({ label, value, color }: { label: string; value: number; color
     )
 }
 
-function NavItem({ icon, label, active }: { icon: string; label: string; active?: boolean }) {
+function NavItem({ icon, label, tab, active, onClick }: {
+    icon: string; label: string; tab: NavTab; active: NavTab; onClick: (t: NavTab) => void
+}) {
+    const isActive = tab === active
     return (
-        <div style={{ ...styles.navItem, ...(active ? styles.navItemActive : {}) }}>
+        <div
+            style={{ ...styles.navItem, ...(isActive ? styles.navItemActive : {}) }}
+            onClick={() => onClick(tab)}
+        >
             <span style={{ fontSize: 16 }}>{icon}</span>
             <span>{label}</span>
         </div>

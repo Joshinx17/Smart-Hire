@@ -2,6 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react"
 import { useEffect, useState } from "react"
+import { Sparkles } from "lucide-react"
 
 type Job = {
     id: string
@@ -115,12 +116,17 @@ export default function RecruiterDashboard() {
         <div style={styles.root}>
             {/* ── Sidebar ── */}
             <aside style={styles.sidebar}>
-                <div style={styles.logo}>⌖ JobBoard</div>
+                <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg border border-amber-500/40 flex items-center justify-center">
+                        <Sparkles size={14} className="text-amber-400" />
+                    </div>
+                    <span>SMARTHIRE AI</span>
+                </div>
                 <nav style={styles.nav}>
-                    <NavItem icon="◈" label="My Postings"   tab="postings"     active={activeTab} onClick={setActiveTab} />
-                    <NavItem icon="◉" label="Applications"  tab="applications" active={activeTab} onClick={setActiveTab} />
-                    <NavItem icon="◎" label="Analytics"     tab="analytics"    active={activeTab} onClick={setActiveTab} />
-                    <NavItem icon="◌" label="Profile"        tab="profile"      active={activeTab} onClick={setActiveTab} />
+                    <NavItem icon="" label="My Postings" tab="postings" active={activeTab} onClick={setActiveTab} />
+                    <NavItem icon="" label="Applications" tab="applications" active={activeTab} onClick={setActiveTab} />
+                    <NavItem icon="" label="Analytics" tab="analytics" active={activeTab} onClick={setActiveTab} />
+                    <NavItem icon="" label="Profile" tab="profile" active={activeTab} onClick={setActiveTab} />
                 </nav>
                 <div style={styles.sidebarBottom}>
                     <div style={styles.userChip}>

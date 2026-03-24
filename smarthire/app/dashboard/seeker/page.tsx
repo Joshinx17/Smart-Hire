@@ -2,6 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react"
 import { useEffect, useState } from "react"
+import { Sparkles } from "lucide-react"
 
 type Job = {
   id: string
@@ -27,10 +28,10 @@ const TYPE_COLORS: Record<string, { bg: string; text: string; border: string }> 
 }
 
 const NAV_ITEMS: { icon: string; label: string; tab: NavTab }[] = [
-  { icon: "⊞", label: "Browse Jobs",   tab: "browse"       },
-  { icon: "♡", label: "Saved Jobs",    tab: "saved"        },
-  { icon: "◎", label: "Applications",  tab: "applications" },
-  { icon: "⊙", label: "Profile",       tab: "profile"      },
+  { icon: "", label: "Browse Jobs",   tab: "browse"       },
+  { icon: "", label: "Saved Jobs",    tab: "saved"        },
+  { icon: "", label: "Applications",  tab: "applications" },
+  { icon: "", label: "Profile",       tab: "profile"      },
 ]
 
 export default function SeekerDashboard() {
@@ -105,10 +106,12 @@ export default function SeekerDashboard() {
 
         {/* ── Sidebar ── */}
         <aside className="sidebar">
-          <div className="logo">
-            <span className="logo-icon">⌖</span>
-            <span className="logo-text">SmartHire</span>
-          </div>
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg border border-amber-500/40 flex items-center justify-center">
+                  <Sparkles size={14} className="text-amber-400" />
+              </div>
+              <span>SMARTHIRE AI</span>
+            </div>
 
           <nav className="nav">
             {NAV_ITEMS.map((item) => (

@@ -46,6 +46,8 @@ export default function RecruiterDashboard() {
     const [form, setForm] = useState(EMPTY_FORM)
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState("")
+    const [applications, setApplications] = useState<any[]>([])
+    const [appLoading, setAppLoading] = useState(false)
 
     const fetchJobs = () => {
         fetch("/api/recruiter/jobs")
@@ -57,6 +59,18 @@ export default function RecruiterDashboard() {
     useEffect(() => {
         if (status === "authenticated") fetchJobs()
     }, [status])
+
+    useEffect(() => {
+        if (activeTab === "applications") {
+            setAppLoading(true)
+
+            fetch("/api/recruiter/applications")
+                .then((res) => res.json())
+                .then((data) => setApplications(data))
+                .catch(console.error)
+                .finally(() => setAppLoading(false))
+        }
+    }, [activeTab])
 
     const toggleJob = async (id: string, isOpen: boolean) => {
         await fetch(`/api/recruiter/jobs/${id}`, {
@@ -238,15 +252,62 @@ export default function RecruiterDashboard() {
                         <div style={styles.header}>
                             <div>
                                 <h1 style={styles.pageTitle}>Applications</h1>
-                                <p style={styles.pageSubtitle}>Review candidates who applied to your postings</p>
+                                <p style={styles.pageSubtitle}>
+                                    Review candidates who applied to your postings
+                                </p>
                             </div>
                         </div>
-                        <PlaceholderCard
-                            icon="◉"
-                            title="Applications coming soon"
-                            desc="Once candidates apply to your job postings, you'll be able to review, filter, and manage them here."
-                            color="#6366f1"
-                        />
+
+                        {appLoading ? (
+                            <p>Loading applications...</p>
+                        ) : applications.length === 0 ? (
+                            <p>No applications yet</p>
+                        ) : (
+                            <div style={styles.tableWrap}>
+                                <table style={styles.table}>
+                                    <thead>
+                                        <tr>
+                                            <th style={styles.th}>Candidate</th>
+                                            <th style={styles.th}>Email</th>
+                                            <th style={styles.th}>Job</th>
+                                            <th style={styles.th}>Skills</th>
+                                            <th style={styles.th}>Resume</th>
+                                            <th style={styles.th}>Applied At</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        {applications.map((app) => (
+                                            <tr key={app.id} style={styles.tr}>
+                                                <td style={styles.td}>{app.name}</td>
+                                                <td style={styles.td}>{app.seeker.email}</td>
+                                                <td style={styles.td}>
+                                                    {app.job.title} <br />
+                                                    <span style={{ color: "#64748b" }}>
+                                                        {app.job.company}
+                                                    </span>
+                                                </td>
+                                                <td style={styles.td}>
+                                                    {app.skills.join(", ")}
+                                                </td>
+                                                <td style={styles.td}>
+                                                    <a
+                                                        href={app.resumeUrl}
+                                                        target="_blank"
+                                                        style={{ color: "#22c55e" }}
+                                                    >
+                                                        View
+                                                    </a>
+                                                </td>
+                                                <td style={styles.td}>
+                                                    {new Date(app.createdAt).toLocaleDateString()}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
                     </>
                 )}
 

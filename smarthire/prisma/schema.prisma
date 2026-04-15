@@ -19,6 +19,7 @@ model User {
   resetTokenExpiry  DateTime?
 
   jobs      Job[]
+  applications Application[] @relation("SeekerApplications")
 }
 
 model Job {
@@ -36,4 +37,20 @@ model Job {
 
   recruiterId String
   recruiter   User     @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  applications Application[]
+}
+
+
+model Application {
+  id        String   @id @default(uuid())
+  name      String
+  resumeUrl String
+  skills    String[]
+  createdAt DateTime @default(now())
+
+  jobId  String
+  job    Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  seekerId String
+  seeker   User   @relation("SeekerApplications", fields: [seekerId], references: [id], onDelete: Cascade)
 }

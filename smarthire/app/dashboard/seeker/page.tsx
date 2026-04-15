@@ -3,6 +3,7 @@
 import { useSession, signOut } from "next-auth/react"
 import { useEffect, useState } from "react"
 import { Sparkles } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 type Job = {
   id: string
@@ -21,20 +22,21 @@ type Job = {
 type NavTab = "browse" | "saved" | "applications" | "profile"
 
 const TYPE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  "full-time":  { bg: "#052e16", text: "#4ade80", border: "#166534" },
-  "part-time":  { bg: "#1c1400", text: "#fbbf24", border: "#78350f" },
-  contract:     { bg: "#0d0b2e", text: "#a5b4fc", border: "#3730a3" },
-  remote:       { bg: "#0a1e26", text: "#22d3ee", border: "#164e63" },
+  "full-time": { bg: "#052e16", text: "#4ade80", border: "#166534" },
+  "part-time": { bg: "#1c1400", text: "#fbbf24", border: "#78350f" },
+  contract: { bg: "#0d0b2e", text: "#a5b4fc", border: "#3730a3" },
+  remote: { bg: "#0a1e26", text: "#22d3ee", border: "#164e63" },
 }
 
 const NAV_ITEMS: { icon: string; label: string; tab: NavTab }[] = [
-  { icon: "", label: "Browse Jobs",   tab: "browse"       },
-  { icon: "", label: "Saved Jobs",    tab: "saved"        },
-  { icon: "", label: "Applications",  tab: "applications" },
-  { icon: "", label: "Profile",       tab: "profile"      },
+  { icon: "", label: "Browse Jobs", tab: "browse" },
+  { icon: "", label: "Saved Jobs", tab: "saved" },
+  { icon: "", label: "Applications", tab: "applications" },
+  { icon: "", label: "Profile", tab: "profile" },
 ]
 
 export default function SeekerDashboard() {
+  const router = useRouter()
   const { data: session, status } = useSession()
 
   const [activeTab, setActiveTab] = useState<NavTab>("browse")
@@ -45,6 +47,18 @@ export default function SeekerDashboard() {
   const [search, setSearch] = useState("")
   const [typeFilter, setTypeFilter] = useState("all")
   const [selected, setSelected] = useState<Job | null>(null)
+  const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set())
+
+  // FIX 1: Removed orphaned useEffect that referenced undefined `jobId`,
+  // and removed the unused `alreadyApplied` / `checkingApplied` state.
+  // The appliedIds set below already handles the "already applied" check.
+
+  useEffect(() => {
+    if (status !== "authenticated") return
+    fetch("/api/applications") // returns [{ jobId }]
+      .then((r) => r.json())
+      .then((data) => setAppliedIds(new Set(data.map((a: { jobId: string }) => a.jobId))))
+  }, [status])
 
   useEffect(() => {
     if (status !== "authenticated") return
@@ -86,6 +100,8 @@ export default function SeekerDashboard() {
   }, [search, typeFilter, jobs])
 
   const savedJobs = jobs.filter((j) => savedIds.has(j.id))
+  // FIX 4: Derive applied jobs from the already-fetched appliedIds set
+  const appliedJobs = jobs.filter((j) => appliedIds.has(j.id))
 
   if (status === "loading" || loading) {
     return (
@@ -106,12 +122,14 @@ export default function SeekerDashboard() {
 
         {/* ── Sidebar ── */}
         <aside className="sidebar">
+          <div className="mb-8">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg border border-amber-500/40 flex items-center justify-center">
-                  <Sparkles size={14} className="text-amber-400" />
+                <Sparkles size={11} className="text-amber-400" />
               </div>
               <span>SMARTHIRE AI</span>
             </div>
+          </div>
 
           <nav className="nav">
             {NAV_ITEMS.map((item) => (
@@ -125,7 +143,11 @@ export default function SeekerDashboard() {
                 {item.tab === "saved" && savedIds.size > 0 && (
                   <span className="nav-badge">{savedIds.size}</span>
                 )}
-                {activeTab === item.tab && <span className="nav-dot" />}
+                {item.tab === "applications" && appliedIds.size > 0 && (
+                  <span className="nav-badge">{appliedIds.size}</span>
+                )}
+                {/* FIX 5: Only show nav-dot when NOT active (invisible on amber bg otherwise) */}
+                {activeTab !== item.tab && <span className="nav-dot" />}
               </div>
             ))}
           </nav>
@@ -168,7 +190,6 @@ export default function SeekerDashboard() {
 
               <div className="filter-row">
                 <div className="search-wrap">
-                  <span className="search-icon">⊙</span>
                   <input
                     className="search-input"
                     placeholder="Search title, company, location, skills…"
@@ -256,24 +277,41 @@ export default function SeekerDashboard() {
           )}
 
           {/* ── APPLICATIONS ── */}
+          {/* FIX 4: Render actual applied jobs instead of a placeholder */}
           {activeTab === "applications" && (
             <>
               <div className="header">
                 <div>
                   <h1 className="page-title">My Applications</h1>
-                  <p className="page-subtitle">Track the jobs you've applied to</p>
+                  <p className="page-subtitle">
+                    <span className="count-badge">{appliedJobs.length}</span>
+                    {" "}application{appliedJobs.length !== 1 ? "s" : ""} submitted
+                  </p>
                 </div>
               </div>
-              <div className="placeholder-card">
-                <div className="placeholder-icon">◎</div>
-                <p className="placeholder-title">Applications coming soon</p>
-                <p className="placeholder-desc">
-                  Once you apply to jobs, you'll be able to track your application status here.
-                </p>
-                <button className="empty-reset" onClick={() => setActiveTab("browse")} style={{ marginTop: 8 }}>
-                  Browse jobs
-                </button>
-              </div>
+
+              {appliedJobs.length === 0 ? (
+                <div className="empty">
+                  <div className="empty-icon">◎</div>
+                  <p className="empty-text">You haven&apos;t applied to any jobs yet.</p>
+                  <button className="empty-reset" onClick={() => setActiveTab("browse")}>
+                    Browse jobs
+                  </button>
+                </div>
+              ) : (
+                <div className="grid">
+                  {appliedJobs.map((job, i) => (
+                    <JobCard
+                      key={job.id}
+                      job={job}
+                      index={i}
+                      saved={savedIds.has(job.id)}
+                      onSave={() => toggleSave(job.id)}
+                      onClick={() => setSelected(job)}
+                    />
+                  ))}
+                </div>
+              )}
             </>
           )}
 
@@ -298,6 +336,7 @@ export default function SeekerDashboard() {
                   <ProfileRow label="Email" value={session?.user?.email ?? "—"} />
                   <ProfileRow label="Role" value="Job Seeker" />
                   <ProfileRow label="Saved Jobs" value={String(savedIds.size)} />
+                  <ProfileRow label="Applications" value={String(appliedIds.size)} />
                 </div>
                 <p className="profile-note">Profile editing coming soon.</p>
               </div>
@@ -320,7 +359,7 @@ export default function SeekerDashboard() {
               </div>
 
               <div className="drawer-meta">
-                <span className="meta-pill">⌖ {selected.location}</span>
+                <span className="meta-pill"> {selected.location}</span>
                 <span
                   className="meta-pill"
                   style={{
@@ -369,7 +408,33 @@ export default function SeekerDashboard() {
                 >
                   {savedIds.has(selected.id) ? "♥ Saved" : "♡ Save"}
                 </button>
-                <button className="apply-btn">Apply Now →</button>
+                {appliedIds.has(selected.id) ? (
+                  <button
+                    className="apply-btn"
+                    style={{
+                      background: "#1e293b",
+                      color: "#22c55e",
+                      cursor: "not-allowed",
+                    }}
+                    disabled
+                  >
+                    ✓ Applied
+                  </button>
+                ) : (
+                  <button
+                    className="apply-btn"
+                    onClick={() => {
+                      router.push(
+                        `/apply?jobId=${selected.id}` +
+                        `&role=${encodeURIComponent(selected.title)}` +
+                        `&company=${encodeURIComponent(selected.company)}` +
+                        `&salary=${encodeURIComponent(selected.salary ?? "")}`
+                      )
+                    }}
+                  >
+                    Apply Now
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -411,7 +476,7 @@ function JobCard({ job, index, saved, onSave, onClick }: {
 
       <h3 className="job-title">{job.title}</h3>
       <p className="company-name">{job.company}</p>
-      <p className="location">⌖ {job.location}</p>
+      <p className="location"> {job.location}</p>
       {job.salary && <p className="salary"> {job.salary} LPA</p>}
 
       <p className="desc">{job.description.slice(0, 110)}{job.description.length > 110 ? "…" : ""}</p>
@@ -464,7 +529,7 @@ const globalStyles = `
     --border2:  #252f40;
     --text-1:   #f0f4ff;
     --text-2:   #8896b3;
-    --text-3:   #4a566e;
+    --text-3:   #4e5d78;
     --accent:   #f59e0b;
     --accent2:  #fbbf24;
     --purple:   #818cf8;
@@ -519,7 +584,7 @@ const globalStyles = `
   .logo { display: flex; align-items: center; gap: 10px; padding: 0 24px 36px; }
   .logo-icon { font-size: 22px; color: var(--accent); }
   .logo-text { font-family: var(--font-display); font-size: 18px; font-weight: 800; letter-spacing: -0.5px; color: var(--text-1); }
-  .nav { flex: 1; display: flex; flex-direction: column; gap: 2px; padding: 0 12px; }
+  .nav { flex: 1; display: flex; flex-direction: column; gap: 2px; padding: 0 12px; margin-top:24px}
   .nav-item {
     display: flex; align-items: center; gap: 12px;
     padding: 11px 14px; border-radius: 10px;
@@ -528,8 +593,8 @@ const globalStyles = `
     transition: all 0.15s; position: relative;
   }
   .nav-item:hover { color: var(--text-2); background: var(--surface2); }
-  .nav-item-active { background: #1a1400; color: var(--accent); }
-  .nav-item-active:hover { background: #1a1400; color: var(--accent); }
+  .nav-item-active { background: #fbbf24; color: #1f2937; }
+  .nav-item-active:hover { background: #f59e0b; color: #1f2937; }
   .nav-icon { font-size: 17px; }
   .nav-label { font-size: 15px; }
   .nav-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-left: auto; }
@@ -645,6 +710,6 @@ const globalStyles = `
   .drawer-actions { display: flex; gap: 10px; margin-top: auto; padding-top: 8px; }
   .save-btn { flex: 0 0 auto; background: transparent; border: 1px solid var(--border2); color: var(--text-2); border-radius: 9px; padding: 11px 16px; font-size: 13px; cursor: pointer; font-family: var(--font-body); transition: all 0.15s; }
   .save-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .apply-btn { flex: 1; background: var(--accent); color: #000; border: none; border-radius: 9px; padding: 12px 20px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--font-display); letter-spacing: -0.3px; transition: all 0.15s; box-shadow: 0 4px 20px #f59e0b40; }
+  .apply-btn { flex: 1; background: var(--accent2); color: #000; border: none; border-radius: 9px; padding: 12px 20px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--font-display); letter-spacing: -0.3px; transition: all 0.15s; box-shadow: 0 4px 20px #f59e0b40; }
   .apply-btn:hover { background: var(--accent2); transform: translateY(-1px); box-shadow: 0 8px 28px #f59e0b50; }
 `

@@ -19,7 +19,7 @@ export async function GET() {
       job: { select: { title: true, company: true } },
       seeker: { select: { name: true, email: true } },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: { matchScore: "desc" },
   })
 
   return NextResponse.json(applications)

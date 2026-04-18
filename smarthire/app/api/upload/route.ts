@@ -1,7 +1,10 @@
-// app/api/upload/route.ts
 import { NextRequest, NextResponse } from "next/server"
-import { writeFile, mkdir } from "fs/promises"
-import path from "path"
+import { createClient } from "@supabase/supabase-js"
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData()
@@ -15,12 +18,13 @@ export async function POST(req: NextRequest) {
 
   const bytes = await file.arrayBuffer()
   const buffer = Buffer.from(bytes)
-
-  const uploadDir = path.join(process.cwd(), "public", "resumes")
-  await mkdir(uploadDir, { recursive: true })
-
   const filename = `${Date.now()}-${file.name.replace(/\s+/g, "_")}`
-  await writeFile(path.join(uploadDir, filename), buffer)
 
-  return NextResponse.json({ url: `/resumes/${filename}` })
+  const { error } = await supabase.storage
+    .from("resumes")
+    .upload(filename, buffer, { contentType: "application/pdf" })
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  return NextResponse.json({ url: filename })
 }

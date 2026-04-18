@@ -46,6 +46,7 @@ model Application {
   name      String
   resumeUrl String
   skills    String[]
+  matchScore Float?
   createdAt DateTime @default(now())
 
   jobId  String

@@ -1,10 +1,10 @@
 'use client'
 import { signIn } from 'next-auth/react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Eye, EyeOff, Sparkles, ArrowRight, Briefcase, Search } from 'lucide-react'
+import { Eye, EyeOff, Sparkles, ArrowRight, Briefcase, Search, Loader2 } from 'lucide-react'
 
-export default function RegisterPage() {
+function RegisterPageInner() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -326,5 +326,17 @@ export default function RegisterPage() {
       </div>
 
     </main>
+  )
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <Loader2 size={28} className="text-amber-400 animate-spin" />
+      </div>
+    }>
+      <RegisterPageInner />
+    </Suspense>
   )
 }

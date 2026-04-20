@@ -111,25 +111,14 @@ export const authOptions: NextAuthOptions = {
       }
     },
 
-    async jwt({ token }) {
-      try {
-        if (token.email) {
-          const dbUser = await prisma.user.findUnique({
-            where: { email: token.email },
-            select: { id: true, role: true },
-          })
-
-          if (dbUser) {
-            token.id = dbUser.id
-            token.role = dbUser.role
-          }
-        }
-      } catch (err) {
-        console.error("JWT ERROR:", err)
-      }
-
-      return token
-    },
+    async jwt({ token, user }) {
+  // only hit DB on first sign in, not every session check
+  if (user) {
+    token.id = user.id
+    token.role = (user as any).role
+  }
+  return token
+},
 
     async session({ session, token }) {
       if (token) {

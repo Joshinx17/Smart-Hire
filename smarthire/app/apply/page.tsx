@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef,Suspense } from 'react'
 import { useSession } from 'next-auth/react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Sparkles, ArrowLeft, Upload, X, Plus, CheckCircle, Loader2, FileText, AlertCircle } from 'lucide-react'
@@ -24,8 +24,7 @@ function SkillTag({ skill, onRemove }: { skill: string; onRemove: () => void }) 
     </span>
   )
 }
-
-export default function ApplyPage() {
+function ApplyPageInner() {
   const { data: session, status } = useSession()
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -326,5 +325,17 @@ export default function ApplyPage() {
         </form>
       </main>
     </div>
+  )
+}
+
+export default function ApplyPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <Loader2 size={28} className="text-amber-400 animate-spin" />
+      </div>
+    }>
+      <ApplyPageInner />
+    </Suspense>
   )
 }
